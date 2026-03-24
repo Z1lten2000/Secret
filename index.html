@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Мамин График</title>
+<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;600;700&family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f14;
+    --surface: #1a1a24;
+    --card: #22223a;
+    --border: rgba(255,255,255,0.07);
+    --work-bg: #ff4d6d;
+    --work-text: #fff;
+    --off-bg: #38d9a9;
+    --off-text: #fff;
+    --today-ring: #a78bfa;
+    --text-primary: #f0eeff;
+    --text-muted: rgba(240,238,255,0.45);
+    --accent: #a78bfa;
+    --header-height: 140px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  .app-shell {
+    width: 100%;
+    max-width: 430px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Ambient glow blobs */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.18;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob-1 { width: 300px; height: 300px; background: #a78bfa; top: -80px; left: -60px; }
+  .blob-2 { width: 250px; height: 250px; background: #38d9a9; bottom: 100px; right: -80px; }
+  .blob-3 { width: 200px; height: 200px; background: #ff4d6d; top: 40%; left: 30%; }
+
+  /* Header */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 52px 24px 20px;
+    background: linear-gradient(180deg, var(--bg) 80%, transparent);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .app-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #f0eeff, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .emoji-icon {
+    font-size: 28px;
+    filter: drop-shadow(0 0 8px rgba(167,139,250,0.6));
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 400;
+    letter-spacing: 0.2px;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    padding: 0 24px 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .legend-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+
+  .legend-dot.work { background: var(--work-bg); }
+  .legend-dot.off { background: var(--off-bg); }
+
+  /* Nav */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    -webkit-user-select: none;
+  }
+
+  .nav-btn:active { transform: scale(0.92); background: var(--card); }
+
+  .month-label {
+    text-align: center;
+  }
+
+  .month-name {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+
+  .year-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* Calendar */
+  .calendar-wrap {
+    padding: 0 16px 24px;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+  }
+
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 8px;
+  }
+
+  .weekday {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 4px 0;
+  }
+
+  .weekday:nth-child(7), .weekday:nth-child(6) {
+    color: var(--accent);
+  }
+
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+
+  .day-cell {
+    aspect-ratio: 1;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: default;
+    position: relative;
+    transition: transform 0.12s ease;
+    -webkit-user-select: none;
+  }
+
+  .day-cell.empty {
+    background: transparent;
+    pointer-events: none;
+  }
+
+  .day-cell.work {
+    background: var(--work-bg);
+    color: var(--work-text);
+    box-shadow: 0 4px 16px rgba(255,77,109,0.35);
+  }
+
+  .day-cell.off {
+    background: var(--off-bg);
+    color: var(--off-text);
+    box-shadow: 0 4px 16px rgba(56,217,169,0.30);
+  }
+
+  .day-cell.today::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 17px;
+    border: 2.5px solid var(--today-ring);
+    box-shadow: 0 0 12px rgba(167,139,250,0.5);
+  }
+
+  .day-cell .day-icon {
+    font-size: 10px;
+    margin-top: 2px;
+    opacity: 0.85;
+  }
+
+  .day-cell:active { transform: scale(0.9); }
+
+  /* Stats bar */
+  .stats-bar {
+    margin: 0 16px 16px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    position: relative;
+    z-index: 1;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .stat-num.work-num { color: var(--work-bg); }
+  .stat-num.off-num { color: var(--off-bg); }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-divider {
+    width: 1px;
+    background: var(--border);
+    align-self: stretch;
+  }
+
+  /* Today info */
+  .today-banner {
+    margin: 0 16px 20px;
+    padding: 14px 20px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+    background: var(--surface);
+  }
+
+  .today-icon-big {
+    font-size: 32px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+  }
+
+  .today-info-text .label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+  }
+
+  .today-info-text .status {
+    font-size: 17px;
+    font-weight: 800;
+    margin-top: 2px;
+  }
+
+  .today-info-text .status.work { color: var(--work-bg); }
+  .today-info-text .status.off { color: var(--off-bg); }
+
+  /* Slide anim */
+  .calendar-wrap { overflow: hidden; }
+  .days-grid {
+    animation: fadeSlide 0.25s ease;
+  }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="header">
+    <div class="header-top">
+      <div class="app-title">Мамин График</div>
+      <div class="emoji-icon">👩‍⚕️</div>
+    </div>
+    <div class="subtitle">График работы 2 / 2</div>
+  </div>
+
+  <div id="todayBanner" class="today-banner"></div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot work">🔴</div>
+      <span>Рабочий день</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot off">🟢</div>
+      <span>Выходной</span>
+    </div>
+  </div>
+
+  <div class="month-nav">
+    <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+    <div class="month-label">
+      <div class="month-name" id="monthName"></div>
+      <div class="year-label" id="yearLabel"></div>
+    </div>
+    <button class="nav-btn" onclick="changeMonth(1)">›</button>
+  </div>
+
+  <div id="statsBar" class="stats-bar"></div>
+
+  <div class="calendar-wrap">
+    <div class="weekdays">
+      <div class="weekday">Пн</div>
+      <div class="weekday">Вт</div>
+      <div class="weekday">Ср</div>
+      <div class="weekday">Чт</div>
+      <div class="weekday">Пт</div>
+      <div class="weekday">Сб</div>
+      <div class="weekday">Вс</div>
+    </div>
+    <div class="days-grid" id="daysGrid"></div>
+  </div>
+</div>
+
+<script>
+// === SCHEDULE LOGIC ===
+// Known reference: Jan 7, 2026 = OFF (day 0 of a 4-day cycle: OFF, OFF, WORK, WORK)
+// Cycle: 2 days off, 2 days work
+// Jan 7 = phase 0 (off), Jan 8 = phase 1 (off), Jan 9 = phase 2 (work), Jan 10 = phase 3 (work)
+
+const REF_DATE = new Date(2026, 0, 7); // Jan 7, 2026 = phase 0
+
+function getPhase(date) {
+  const msPerDay = 86400000;
+  const ref = new Date(REF_DATE.getFullYear(), REF_DATE.getMonth(), REF_DATE.getDate());
+  const d   = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diff = Math.round((d - ref) / msPerDay);
+  let phase = ((diff % 4) + 4) % 4;
+  return phase; // 0,1 = off; 2,3 = work
+}
+
+function isWorkDay(date) {
+  const p = getPhase(date);
+  return p === 2 || p === 3;
+}
+
+// === APP STATE ===
+const today = new Date();
+let viewYear  = today.getFullYear();
+let viewMonth = today.getMonth();
+
+const MONTHS_RU = [
+  'Январь','Февраль','Март','Апрель','Май','Июнь',
+  'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'
+];
+
+function changeMonth(delta) {
+  viewMonth += delta;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+  render();
+}
+
+function render() {
+  renderHeader();
+  renderStats();
+  renderGrid();
+  renderTodayBanner();
+}
+
+function renderHeader() {
+  document.getElementById('monthName').textContent = MONTHS_RU[viewMonth];
+  document.getElementById('yearLabel').textContent = viewYear;
+}
+
+function renderStats() {
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  let workCount = 0, offCount = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(viewYear, viewMonth, d);
+    isWorkDay(date) ? workCount++ : offCount++;
+  }
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-item">
+      <div class="stat-num off-num">${offCount}</div>
+      <div class="stat-label">Выходных</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-num work-num">${workCount}</div>
+      <div class="stat-label">Рабочих</div>
+    </div>
+  `;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('daysGrid');
+  grid.innerHTML = '';
+
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  // Mon=0 ... Sun=6
+  let startOffset = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  for (let i = 0; i < startOffset; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'day-cell empty';
+    grid.appendChild(empty);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(viewYear, viewMonth, d);
+    const work = isWorkDay(date);
+    const isToday = (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+
+    const cell = document.createElement('div');
+    cell.className = `day-cell ${work ? 'work' : 'off'}${isToday ? ' today' : ''}`;
+    cell.innerHTML = `
+      ${d}
+      <span class="day-icon">${work ? '💼' : '🌿'}</span>
+    `;
+    grid.appendChild(cell);
+  }
+}
+
+function renderTodayBanner() {
+  const work = isWorkDay(today);
+  const dayNames = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+  const dayName = dayNames[today.getDay()];
+  document.getElementById('todayBanner').innerHTML = `
+    <div class="today-icon-big">${work ? '💼' : '🌿'}</div>
+    <div class="today-info-text">
+      <div class="label">Сегодня — ${dayName}</div>
+      <div class="status ${work ? 'work' : 'off'}">${work ? 'Рабочий день' : 'Выходной день'}</div>
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>
